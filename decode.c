@@ -87,46 +87,51 @@ d_Status open_files_decode(DecodeInfo *decInfo) {
     return d_success;
 }
 
-d_Status decode_magic_string (char *magic_string, int magic_len, DecodeInfo *decInfo) {
-
-    //function calling for decode magicstring data from image
+d_Status decode_magic_string(char *magic_string, int magic_len, DecodeInfo *decInfo)
+{
+    // Seek to start of hidden data (after BMP header)
     fseek(decInfo->fptr_stego_image, 54, SEEK_SET);
 
-    if (decode_data_from_image (magic_string, magic_len, decInfo) == d_success)
+    // Decode magic string data from image
+    if (decode_data_from_image(magic_string, magic_len, decInfo) == d_success)
+    {
+        //printf("DEBUG: Current file position = %ld\n", ftell(decInfo->fptr_stego_image));
+        return d_success;
+    }
 
-    printf("DEBUG: Current file position = %ld\n", ftell(decInfo->fptr_stego_image));
-
-    return d_success;
+    return d_failure;
 }
 
-d_Status decode_data_from_image(char *data, int size , DecodeInfo *decInfo) {
-
+d_Status decode_data_from_image(char *data, int size, DecodeInfo *decInfo)
+{
     char image_buffer[8];
 
-    for(int i = 0; i < size; i++) {
-        //Read size*8 bytes from RGB data (bcz to decode 1 char = need 8 byte need to be read)
-        fread(image_buffer, 1, 8, decInfo->fptr_stego_image);
+    for (int i = 0; i < size; i++)
+    {
+        if (fread(image_buffer, 1, 8, decInfo->fptr_stego_image) != 8)
+        {
+            fprintf(stderr, "ERROR: Unexpected EOF while decoding.\n");
+            return d_failure;
+        }
 
-        //call decode bit from lsb function
-        data[i] = decode_bit_from_lsb (image_buffer);
-
-        printf("Decoded char[%d] = %c (ASCII %d)\n", i, data[i], data[i]);
-
-
+        data[i] = decode_bit_from_lsb(image_buffer);
+        //printf("Decoded char[%d] = %c (ASCII %d)\n", i, data[i], data[i]);
     }
+
     data[size] = '\0';
     return d_success;
 }
 
-char decode_bit_from_lsb(char *secret_buffer) {
-
+char decode_bit_from_lsb(char *secret_buffer)
+{
     char ch = 0;
-    for(int i = 0; i < 8; i++) {
-
-        ch = ch | ((secret_buffer[i] & 0x01) << i) ;
+    for (int i = 0; i < 8; i++)
+    {
+        ch |= ((secret_buffer[i] & 1) << i);  // MSB-first decoding
     }
     return ch;
 }
+
 
 d_Status decode_secret_file_extn_size(int *size, DecodeInfo *decInfo) {
 
@@ -134,18 +139,19 @@ d_Status decode_secret_file_extn_size(int *size, DecodeInfo *decInfo) {
     //function call for decode_size from image
     decode_size_from_image(size,decInfo);
 
-    printf("DEBUG: Current file position = %ld\n", ftell(decInfo->fptr_stego_image));
+    
 
     return d_success;
 
 }
 
-d_Status decode_secret_file_extn(char *file_extn, DecodeInfo *decInfo) {
+d_Status decode_secret_file_extn(char *file_extn,int extn_len, DecodeInfo *decInfo) {
 
-    decode_data_from_image(file_extn, strlen(file_extn), decInfo);
-    printf("Secret_file_extention is : %s\n",file_extn);
+    //printf("Extention size in file_extn = %d\n",extn_len);
+    decode_data_from_image(file_extn,extn_len, decInfo);
+    //printf("Secret_file_extention is : %s\n",file_extn);
     
-    printf("DEBUG: Current file position = %ld\n", ftell(decInfo->fptr_stego_image));
+    //printf("DEBUG: Current file position = %ld\n", ftell(decInfo->fptr_stego_image));
 
     return d_success;
 }
@@ -175,4 +181,26 @@ d_Status decode_size_from_image(int *size, DecodeInfo *decInfo) {
 
     return d_success;
 
+}
+
+d_Status decode_secret_file_size(int *file_size, DecodeInfo *decInfo){
+
+    decode_size_from_image(file_size, decInfo);
+    return d_success;
+}
+
+d_Status decode_secret_file_data(char *data, int data_len, DecodeInfo *decInfo) {
+
+    decode_data_from_image(data, data_len, decInfo);
+    //printf("Secret_file_extention is : %s\n",data);
+
+    //to write secret messsage into secret_data.txt file
+    decInfo->fptr_secret = fopen(decInfo->secret_fname, "w+");
+    if(decInfo->fptr_secret != NULL){
+        fwrite(data, data_len-1,1,decInfo->fptr_secret);
+    }
+    
+    //printf("DEBUG: Current file position = %ld\n", ftell(decInfo->fptr_stego_image));
+
+    return d_success;
 }
