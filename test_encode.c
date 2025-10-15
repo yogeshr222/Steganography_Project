@@ -50,7 +50,7 @@ int main(int argc , char *argv[])
 
                             //function call for encode secret file extention size
                             strcpy (encInfo.extn_secret_file , strstr(encInfo.secret_fname , "."));
-                            printf("%s\n",encInfo.extn_secret_file);
+                            //printf("%s\n",encInfo.extn_secret_file);
 
                             int len = strlen(encInfo.extn_secret_file);
                             if (encode_secret_file_extn_size (len, &encInfo) == e_success) {
@@ -138,9 +138,12 @@ int main(int argc , char *argv[])
                 if (decode_magic_string(magic_buf, strlen(MAGIC_STRING), &decodeInfo) == d_success) {
 
                     //verify magic string
-                    printf("Magic string is : %s\n",magic_buf);
-                    if (strcmp (magic_buf, MAGIC_STRING)== 0)
+                    //printf("Magic string is : %s\n",magic_buf);
+                    if (strcmp (magic_buf, MAGIC_STRING)== 0){
                         printf("INFO : Decoded magic string successfully\n");
+                        printf("Magic string is : %s\n",magic_buf);
+                        printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
+                    }
                     else {
                         printf("Original magic is %s, not %s\n",MAGIC_STRING, magic_buf);
                         return d_failure;
@@ -150,35 +153,81 @@ int main(int argc , char *argv[])
                     int extn_size;
                     if (decode_secret_file_extn_size(&extn_size, &decodeInfo) == d_success) {
                         if (extn_size == 4) {
-                            printf("Extention size = %d\n",extn_size);
+
                             printf("INFO : Decoded secret_file_extention size successfully\n");
+                            printf("Extention size = %d\n",extn_size);
+                            printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
                             
                             //function call to decode secret_file extention (char)
-                            if (decode_secret_file_extn(decodeInfo.extn_secret_file, &decodeInfo) == d_success) {
+                            char extn_buf[extn_size];
+                            //printf("Size of extn_buf = %ld\n",sizeof(extn_buf));
+                            //printf("Length of extn_buf = %ld\n",strlen(extn_buf));
+                            if (decode_secret_file_extn(extn_buf, extn_size, &decodeInfo) == d_success) {
                                 printf("INFO : Decoded secret_file_extention successfully\n");
+                                printf("Secret_file_extention is : %s\n",extn_buf);
+                                printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
+
+                                //function call to decode secret_file data size
+                                int data_size = 0;
+                                if (decode_secret_file_size(&data_size, &decodeInfo) == d_success) {
+                                    if(data_size == 25) {
+                                        
+                                        printf("INFO : Decoded secret_file_size successfully\n");
+                                        printf("Secret_file_size = %d\n",data_size);
+                                        printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
+
+                                        //function call for decode secret file data
+                                        char data_buf[data_size];
+                                        //printf("Size of data buffer = %ld\n",sizeof(data_buf));
+                                        if( decode_secret_file_data(data_buf, data_size, &decodeInfo) == d_success){
+                                            printf("INFO : Decoded secret data successfully\n");
+                                            printf("Secret_file_extention is : %s\n",data_buf);
+                                            //printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
+
+                                        } else {
+                                            printf("ERROR : Failed to decode secret data\n");
+                                            return d_failure;
+                                        }
+
+                                    } else {
+                                        printf("ERROR : Failed to decode secrete_file size\n");
+                                        printf("Secret file size is %d not 25\n",data_size);
+                                        printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
+                                        return d_failure;
+                                    } 
+                                } else {
+                                    printf("ERROR : Failed to decode secrete_file_size\n");
+                                    //printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
+                                    return d_failure;
+                                }
 
                             } else {
                                 printf("ERROR : Failed to decode secrete_file extention\n");
+                                printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
                                 return d_failure;
                             }
                             
                         } else {
                             printf("ERROR : Failed to decode secrete file_extention size\n");
                             printf("Extention size = %d. This should be 4\n",extn_size);
+                            printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
                             return d_failure;
                         }
 
                     } else {
                         printf("ERROR : Failed to decode secrete file_extention size\n");
+                        printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
                         return d_failure;
                     }
                     
                 } else {
                     printf("ERROR : Failed to decode magic string\n");
+                    printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
                     return d_failure;
                 }
 
                 printf("SUCCESS : Decoding is success\n");
+                //printf("DEBUG: Current file position = %ld\n", ftell(decodeInfo.fptr_stego_image));
             } else {
                 printf("ERROR : Failed to decode\n");
                 return d_failure;
