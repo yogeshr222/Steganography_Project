@@ -57,13 +57,13 @@ d_Status decode_magic_string(char *magic_string, int magic_len, DecodeInfo *decI
 d_Status decode_secret_file_extn_size(int *size, DecodeInfo *decInfo);
 
 //decode secrete file extn
-d_Status decode_secret_file_extn(char *file_extn, DecodeInfo *decInfo);
+d_Status decode_secret_file_extn(char *file_extn, int extn_len,DecodeInfo *decInfo);
 
 //decode secret file data size
-d_Status decode_secret_file_size(long file_size, DecodeInfo *decInfo);
+d_Status decode_secret_file_size(int *file_size, DecodeInfo *decInfo);
 
 //decode secret file data
-d_Status decode_secret_file_data(DecodeInfo *decInfo);
+d_Status decode_secret_file_data(char *data, int data_len, DecodeInfo *decInfo);
 
 //decode data from image
 d_Status decode_data_from_image(char *data, int size , DecodeInfo *decInfo);
@@ -74,7 +74,4 @@ char decode_bit_from_lsb(char *secret_buffer);
 //decode size from image
 d_Status decode_size_from_image(int *size, DecodeInfo *decInfo);
 
-
-
-
- #endif
+#endif
